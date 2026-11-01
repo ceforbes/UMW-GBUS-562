@@ -9,3 +9,4 @@ This repository contains materials created for GBUS 562: AI Language Models at t
    - [Connect 4](week-01/connect4.html): A single-page browser version of Connect 4. Play against a computer opponent with Easy, Medium, or Hard difficulty, or switch to 2 Players to take turns with a friend on the same device. Open the HTML file in any browser to play.
 2. week-02
    - [Prompt Lab](week-02/prompt-lab.html): A web app for testing prompts against Claude, built with Claude Code.
+   - [Writeup](week-02/writeup.md): What I built, why I chose each prompting technique, an example run, and my reflection. Run logs for the four tasks are also in the folder.
