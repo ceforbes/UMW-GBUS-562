@@ -220,3 +220,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 .DS_Store
+
+# Week 3 RAG tool: local Chroma vector database (rebuilt by ask.py --rebuild)
+week-03/chroma_db/
