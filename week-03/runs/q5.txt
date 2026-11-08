@@ -1,0 +1,18 @@
+[1] similarity 0.535  source funds-availability-policy.html
+Funds Availability Policy (Version 3, current) > Check deposits
+For checks deposited at a branch or a Larkfield ATM, the first $275 of the day's check deposits is available on the next business day. The rest of the day's check deposits is available on the second business day after the day of deposit.
+
+[2] similarity 0.495  source funds-availability-policy.html
+Funds Availability Policy (Version 3, current) > Mobile check deposits
+Checks deposited with the Larkfield mobile app follow the same availability as checks deposited at a branch. A member can deposit up to $5,000 per business day through the mobile app. Members should keep the paper check for 30 days after a mobile deposit, then destroy it.
+
+[3] similarity 0.426  source funds-availability-policy.html
+Funds Availability Policy (Version 3, current) > Business days and cutoff times
+A business day is Monday through Friday, except federal holidays. A deposit made before 5 p.m. on a business day is received that day. A deposit made after 5 p.m., or on a weekend or holiday, is received on the next business day.
+
+[4] similarity 0.411  source funds-availability-policy.html
+Funds Availability Policy (Version 3, current) > Longer holds
+Larkfield may hold check deposits for up to seven business days when the day's check deposits total more than $6,000, when the account has been open fewer than 30 days, when the account has been overdrawn repeatedly in the last six months, or when there is reason to doubt the check will be paid. The member is told about a longer hold when the deposit is made, or by mail if the hold is placed later.
+
+ANSWER
+Up to $275 will be available on the next business day; the remaining $1,725 is available on the second business day after the deposit [funds-availability-policy.html]. (This assumes no "longer hold" conditions apply, such as the account being new, overdrawn repeatedly, or reason to doubt payment [funds-availability-policy.html].)

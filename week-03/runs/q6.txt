@@ -1,0 +1,23 @@
+[1] similarity 0.253  source consumer-fee-schedule-v8.html
+Consumer Fee Schedule (Version 8, current) > Stop payments
+A stop payment on a check costs $30 per request. One request can cover a single check or a series of checks with consecutive numbers. A stop payment stays in effect for six months and can be renewed for another $30.
+
+[2] similarity 0.228  source share-certificates.html
+Share Certificates (Version 5, current) > Dividend rates
+- 6-month share certificate: 3.05% annual percentage yield (APY).
+- 12-month share certificate: 3.40% APY.
+- 24-month share certificate: 3.55% APY.
+- 36-month share certificate: 3.60% APY.
+- 60-month share certificate: 3.75% APY.
+The rate is fixed when the certificate is opened and does not change during the term. Dividends are paid monthly and can stay in the certificate or be transferred to the member's savings or checking account.
+
+[3] similarity 0.217  source consumer-fee-schedule-v8.html
+Consumer Fee Schedule (Version 8, current) > Checking account monthly fees
+Everyday Checking has no monthly service fee. Plus Checking has a monthly service fee of $8. The Plus Checking fee is waived for any month in which the account keeps a minimum daily balance of $1,000, or receives direct deposits totaling $500 or more.
+
+[4] similarity 0.185  source share-certificates.html
+Share Certificates (Version 5, current) > At maturity
+When a share certificate matures, it renews automatically for the same term at the rate in effect on the renewal day. The member has a 10-day grace period after maturity to withdraw the money or change the term with no penalty.
+
+ANSWER
+The provided documents don't cover mortgage rates — they only contain information on stop payment fees, checking account fees, and share certificate dividend rates [consumer-fee-schedule-v8.html] [share-certificates.html].

@@ -1,11 +1,13 @@
-"""Ask questions about Copperline Manufacturing's finance documents (RAG).
+"""Ask questions about a folder of documents (RAG).
 
 How it works
-  1. Every document in week-03/copperline-docs is split into chunks, one per
-     section. Each chunk starts with "<document title> (<version>) > <section>"
-     so it makes sense on its own, and records the file it came from.
-  2. The chunks are stored in a Chroma database (week-03/chroma_db) using
-     Chroma's built-in embedding model (all-MiniLM-L6-v2).
+  1. Every document in the document folder (--docs, default
+     week-03/copperline-docs) is split into chunks, one per section. Each chunk
+     starts with "<document title> (<version>) > <section>" so it makes sense
+     on its own, and records the file it came from.
+  2. The chunks are stored in a Chroma database using Chroma's built-in
+     embedding model (all-MiniLM-L6-v2). Each document folder gets its own
+     database under week-03/chroma_db/ (ignored by Git).
   3. For each question, the 4 most similar chunks are retrieved and printed,
      then sent to Claude with the question. Claude answers only from those
      chunks and cites the source file for each fact.
@@ -14,6 +16,12 @@ Usage (from the top of the repository)
   .venv/bin/python week-03/ask.py "How long do I have to submit an expense report?"
   .venv/bin/python week-03/ask.py              # interactive: ask several questions
   .venv/bin/python week-03/ask.py --rebuild    # re-index after adding/removing documents
+  .venv/bin/python week-03/ask.py --docs week-03/larkfield-docs "What is the overdraft fee?"
+  .venv/bin/python week-03/ask.py --docs week-03/larkfield-docs --save week-03/runs/q1.txt "..."
+
+--save FILE also writes the run to FILE (UTF-8): every retrieved chunk in full
+with its rank, similarity score, and source file, then a line containing only
+ANSWER, then Claude's answer.
 
 Supported document types: .html/.htm, .pdf, .md, .txt
 """
@@ -31,9 +39,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent            # week-03/
 REPO = HERE.parent                                # UMW-GBUS-562/
-DOCS_DIR = HERE / "copperline-docs"
-DB_DIR = HERE / "chroma_db"
-COLLECTION = "copperline_docs"
+DEFAULT_DOCS_DIR = HERE / "copperline-docs"
+DB_ROOT = HERE / "chroma_db"          # one database per document folder inside
+COLLECTION = "documents"
 
 # The API key file lives in the folder that contains the repository, outside Git.
 KEY_FILES = [REPO.parent / "API-Key.txt", REPO.parent / "API_Key.txt"]
@@ -59,14 +67,14 @@ CONTEXT_NOTES = {
 }
 
 SYSTEM_PROMPT = """\
-You answer employees' questions about Copperline Manufacturing's internal finance \
-documents. Each question comes with source excerpts retrieved from those documents.
+You answer questions about an organization's internal documents. Each question \
+comes with source excerpts retrieved from those documents.
 
 Rules:
 - Answer only from the information in the sources. Do not use outside knowledge \
-or assume anything about Copperline's policies that the sources do not state.
+or assume anything about the organization's policies that the sources do not state.
 - Cite the source file for each fact in square brackets right after it, for \
-example [travel-expense-policy.html].
+example [expense-policy.html].
 - If the sources do not contain the answer, say clearly that the provided \
 documents don't cover it, and do not guess. If they answer only part of the \
 question, answer that part and say what is missing.
@@ -375,9 +383,23 @@ def chunk_document(path: Path) -> list[dict]:
     return chunks
 
 
-def document_files() -> list[Path]:
-    return sorted(p for p in DOCS_DIR.iterdir()
+def document_files(docs_dir: Path) -> list[Path]:
+    return sorted(p for p in docs_dir.iterdir()
                   if p.is_file() and not p.name.startswith("."))
+
+
+def show_path(path: Path) -> str:
+    """A path relative to the repository when possible, for messages."""
+    try:
+        return str(path.relative_to(REPO))
+    except ValueError:
+        return str(path)
+
+
+def db_dir_for(docs_dir: Path) -> Path:
+    """Each document folder gets its own database: <folder name>-<path hash>."""
+    tag = hashlib.sha256(str(docs_dir).encode()).hexdigest()[:8]
+    return DB_ROOT / f"{docs_dir.name}-{tag}"
 
 
 def docs_fingerprint(files: list[Path]) -> str:
@@ -392,17 +414,17 @@ def docs_fingerprint(files: list[Path]) -> str:
 # Chroma database
 # --------------------------------------------------------------------------
 
-def chroma_client():
+def chroma_client(db_dir: Path):
     import chromadb
     from chromadb.config import Settings
 
-    return chromadb.PersistentClient(path=str(DB_DIR),
+    return chromadb.PersistentClient(path=str(db_dir),
                                      settings=Settings(anonymized_telemetry=False))
 
 
-def build_index(client) -> None:
-    files = document_files()
-    print(f"Indexing documents in {DOCS_DIR.relative_to(REPO)} ...")
+def build_index(client, docs_dir: Path, db_dir: Path) -> None:
+    files = document_files(docs_dir)
+    print(f"Indexing documents in {show_path(docs_dir)} ...")
     all_chunks = []
     for path in files:
         if path.suffix.lower() not in SUPPORTED:
@@ -429,17 +451,18 @@ def build_index(client) -> None:
             documents=[c["text"] for c in all_chunks],
             metadatas=[c["metadata"] for c in all_chunks],
         )
-    print(f"Stored {len(all_chunks)} chunks in {DB_DIR.relative_to(REPO)}\n")
+    print(f"Stored {len(all_chunks)} chunks in {show_path(db_dir)}\n")
 
 
-def get_collection(rebuild: bool):
-    client = chroma_client()
+def get_collection(docs_dir: Path, rebuild: bool):
+    db_dir = db_dir_for(docs_dir)
+    client = chroma_client(db_dir)
     exists = COLLECTION in [c.name for c in client.list_collections()]
     if rebuild or not exists:
-        build_index(client)
+        build_index(client, docs_dir, db_dir)
     collection = client.get_collection(COLLECTION)
     stored = (collection.metadata or {}).get("fingerprint")
-    if stored != docs_fingerprint(document_files()):
+    if stored != docs_fingerprint(document_files(docs_dir)):
         print("Note: the documents have changed since the database was built. "
               "Run with --rebuild to include the changes.\n")
     return collection
@@ -481,7 +504,8 @@ def load_api_key() -> str:
              f"{KEY_FILES[0]}.")
 
 
-def ask_claude(client, question: str, hits: list[dict]) -> None:
+def ask_claude(client, question: str, hits: list[dict]) -> str:
+    """Stream Claude's answer to the screen and return the full text."""
     import anthropic
 
     sources = "\n\n".join(
@@ -491,6 +515,7 @@ def ask_claude(client, question: str, hits: list[dict]) -> None:
     user_message = f"<sources>\n{sources}\n</sources>\n\nQuestion: {question}"
 
     print("Answer:")
+    parts: list[str] = []
     try:
         with client.messages.stream(
             model=MODEL,
@@ -500,6 +525,7 @@ def ask_claude(client, question: str, hits: list[dict]) -> None:
         ) as stream:
             for text in stream.text_stream:
                 print(text, end="", flush=True)
+                parts.append(text)
             final = stream.get_final_message()
     except anthropic.AuthenticationError:
         sys.exit("\nThe API key was rejected. Check the key file or ANTHROPIC_API_KEY.")
@@ -512,28 +538,66 @@ def ask_claude(client, question: str, hits: list[dict]) -> None:
     except anthropic.APIConnectionError:
         sys.exit("\nCould not connect to the Anthropic API. Check your internet connection.")
     print()
+    answer_text = "".join(parts)
+    note = ""
     if final.stop_reason == "refusal":
-        print("(Claude declined to answer this question.)")
+        note = "(Claude declined to answer this question.)"
     elif final.stop_reason == "max_tokens":
-        print("(The answer was cut off because it reached the length limit.)")
+        note = "(The answer was cut off because it reached the length limit.)"
+    if note:
+        print(note)
+        answer_text = f"{answer_text}\n{note}" if answer_text else note
+    return answer_text
 
 
-def answer(collection, claude, question: str) -> None:
+def save_run(path: Path, hits: list[dict], answer_text: str) -> None:
+    """Write the full retrieved chunks, a line ANSWER, then the answer."""
+    lines = []
+    for rank, hit in enumerate(hits, start=1):
+        lines.append(f"[{rank}] similarity {hit['similarity']:.3f}  "
+                     f"source {hit['metadata']['source']}")
+        lines.append(hit["text"])
+        lines.append("")
+    lines.append("ANSWER")
+    lines.append(answer_text.strip())
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"\nSaved this run to {show_path(path)}")
+
+
+def answer(collection, claude, question: str, save: Path | None = None) -> None:
     hits = retrieve(collection, question)
     print()
     print_hits(hits)
-    ask_claude(claude, question, hits)
+    answer_text = ask_claude(claude, question, hits)
+    if save is not None:
+        save_run(save, hits, answer_text)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Answer questions from Copperline Manufacturing's finance documents.")
+        description="Answer questions from a folder of documents.")
     parser.add_argument("question", nargs="*", help="the question to ask (omit for interactive mode)")
+    parser.add_argument("--docs", type=Path, default=DEFAULT_DOCS_DIR, metavar="FOLDER",
+                        help="folder of documents to answer from "
+                             f"(default: {show_path(DEFAULT_DOCS_DIR)})")
     parser.add_argument("--rebuild", action="store_true",
-                        help="re-read every document and rebuild the Chroma database")
+                        help="re-read every document and rebuild this folder's Chroma database")
+    parser.add_argument("--save", type=Path, metavar="FILE",
+                        help="also write the retrieved chunks and the answer to FILE (UTF-8)")
     args = parser.parse_args()
 
-    collection = get_collection(args.rebuild)
+    docs_dir = args.docs.expanduser().resolve()
+    if not docs_dir.is_dir():
+        parser.error(f"document folder not found: {args.docs}")
+    if not document_files(docs_dir):
+        inner = [p.name for p in docs_dir.iterdir() if p.is_dir()]
+        hint = f" (it contains only the folder(s) {', '.join(inner)})" if inner else ""
+        parser.error(f"no documents directly inside {args.docs}{hint}")
+    if args.save and not args.question:
+        parser.error("--save needs a question on the command line")
+
+    collection = get_collection(docs_dir, args.rebuild)
     if args.rebuild and not args.question:
         return
 
@@ -541,10 +605,11 @@ def main() -> None:
     claude = anthropic.Anthropic(api_key=load_api_key())
 
     if args.question:
-        answer(collection, claude, " ".join(args.question))
+        answer(collection, claude, " ".join(args.question), args.save)
         return
 
-    print("Ask a question about Copperline's finance documents (press Enter to quit).")
+    print(f"Ask a question about the documents in {show_path(docs_dir)} "
+          "(press Enter to quit).")
     while True:
         try:
             question = input("\nQuestion: ").strip()
