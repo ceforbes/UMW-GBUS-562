@@ -1,0 +1,7 @@
+# Week 4 HR MCP server (week-04/hr_mcp_server.py) and agent (week-04/agent.py)
+# Install into the repo's virtual environment:
+#   .venv/bin/python -m pip install -r week-04/requirements.txt
+mcp==2.3.0
+chromadb==1.5.9
+beautifulsoup4==4.15.0
+anthropic==2.5.0

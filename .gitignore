@@ -223,3 +223,6 @@ __marimo__/
 
 # Week 3 RAG tool: local Chroma vector database (rebuilt by ask.py --rebuild)
 week-03/chroma_db/
+
+# Week 4 HR MCP server: local Chroma vector database (rebuilt by hr_mcp_server.py --rebuild)
+week-04/chroma_db/

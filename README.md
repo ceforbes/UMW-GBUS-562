@@ -13,3 +13,6 @@ This repository contains materials created for GBUS 562: AI Language Models at t
 3. week-03
    - [RAG tool](week-03/ask.py): a RAG tool that answers questions from a folder of documents (Copperline Manufacturing's finance documents by default, or any folder with `--docs`, such as Larkfield Credit Union's member services documents), built with Claude Code.
    - [Writeup](week-03/writeup.md): What I built, why I chose this chunking approach, an example run, and my reflection. Saved runs for the test questions are in [week-03/runs](week-03/runs).
+4. week-04
+   - [HR email agent](week-04/agent.py): an AI agent that prepares replies to HR emails using tools from an MCP server, built with Claude Code. Run it on one email file (`--email`), or with `--inbox` to handle each unread email in a Gmail sandbox, creating a threaded Gmail draft for each (when flagged, the subject starts with [NEEDS HR REVIEW] and the thread gets the Gmail label "Needs HR Review"). It only creates drafts; it never sends. `--save FILE` also writes the run's output to a text file.
+   - [Inbox loader](week-04/load_inbox.py): places the sample HR emails into a Gmail sandbox inbox over IMAP as unread messages dated today (nothing is sent).
